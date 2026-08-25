@@ -1,83 +1,119 @@
-# DeepSeek Harness Reasoning Effort
+# dsh-reasoning-effort
 
-Standalone DeepSeek Harness plugin for adding configurable reasoning-effort
-levels to custom providers and models. It updates the llm-pi-ai settings
-namespace only when a declaration is missing, so hand-written settings remain
-untouched.
+[![npm version](https://img.shields.io/npm/v/dsh-reasoning-effort?logo=npm&logoColor=white)](https://www.npmjs.com/package/dsh-reasoning-effort)
+[![npm downloads](https://img.shields.io/npm/dm/dsh-reasoning-effort?logo=npm&logoColor=white)](https://www.npmjs.com/package/dsh-reasoning-effort)
+[![GitHub](https://img.shields.io/badge/GitHub-Mu--scorpio%2Fdsh--reasoning--effort-181717?logo=github)](https://github.com/Mu-scorpio/dsh-reasoning-effort)
+[![License](https://img.shields.io/badge/license-MIT-79e5bd.svg)](LICENSE)
+
+> Give custom DeepSeek Harness providers a reasoning-effort vocabulary they can actually use.
+
+`dsh-reasoning-effort` is a small, standalone DSH Bundle that fills missing
+reasoning-effort declarations in the `llm-pi-ai` settings namespace. It lets
+you define provider defaults, model-specific mappings, and protocol wire values
+without replacing the settings that are already there.
+
+![dsh-reasoning-effort configuration overview](assets/reasoning-effort-overview.png)
+
+_Configuration overview: the bundle supplies settings; DSH remains the runtime
+UI and model adapter._
+
+## Why it exists
+
+Different providers describe the same idea in different dialects. One accepts
+`low` / `medium` / `high`; another needs a provider-specific value; a third
+needs a model-level exception. This plugin gives those models one stable
+Harness-facing set of levels while keeping the wire-value mapping configurable.
+
+The result is deliberately narrow:
+
+- provider-aware defaults for common DSH adapter protocols;
+- per-provider and per-model effort mappings;
+- a provider-level default reasoning setting;
+- explicit model opt-out with `disabled: true`;
+- safe, additive settings updates that preserve existing declarations.
 
 ## Install
 
-Install the DSH Bundle into the web profile:
+Install the published Bundle into the DSH web profile, then restart the
+running Harness:
 
-    dsh plugin --profile web add -w --config.auto-install-peers=false dsh-reasoning-effort
-    dsh web
+```sh
+dsh plugin --profile web add -w --config.auto-install-peers=false dsh-reasoning-effort
+dsh web
+```
 
-Restart the running Harness after installation or an update.
+The package is prebuilt on npm, so normal installs do not need to compile the
+plugin from source.
 
-## Configuration
+## Configure
 
-The Bundle includes common defaults for cliproxyapi and jyld. To configure
-another provider, add a config override for the reasoning-effort loader in
-your final cordis patch:
+The Bundle ships with examples for `cliproxyapi` and `jyld`. To configure
+another provider, add an override for the `reasoning-effort` loader in your
+final Cordis patch:
 
+```yaml
+- insert:
     - id: reasoning-effort
       name: dsh-reasoning-effort
       config:
         providers:
-          cliproxyapi:
+          my-provider:
             api: openai-responses
-            reasoning: high
+            reasoning: medium
             efforts:
               low: low
               medium: medium
               high: high
               xhigh: xhigh
               max: max
-          jyld:
-            api: openai-completions
             models:
-              deepseek-v4-flash-0731:
+              my-reasoning-model:
                 efforts:
-                  low: low
-                  medium: medium
-                  high: high
-                  xhigh: xhigh
-                  max: max
+                  high: reasoning_high
+```
 
-Configuration rules:
+### Configuration rules
 
-- api selects the default wire-value mapping for a provider protocol.
-- reasoning sets a provider-level default reasoning level.
-- efforts overrides the wire values sent for each level.
-- models.<id>.efforts overrides the mapping for one model.
-- models.<id>.disabled: true explicitly disables reasoning for that model.
-- Existing reasoningEfforts values, including false, are never overwritten.
-- Providers must already exist in the llm-pi-ai settings; this plugin does not
-  recreate removed providers.
+| Field | Meaning |
+| --- | --- |
+| `api` | Selects the default wire-value map for a provider protocol. |
+| `reasoning` | Sets a provider-level default reasoning level when one is missing. |
+| `efforts` | Overrides the values sent for the generic Harness levels. |
+| `models.<id>.efforts` | Overrides the map for one model. |
+| `models.<id>.disabled` | Explicitly marks one model as non-reasoning. |
 
-Supported Harness levels are off, minimal, low, medium, high, xhigh, and max.
-The built-in protocol defaults use low, medium, high, xhigh, and max.
+The available Harness levels are `off`, `minimal`, `low`, `medium`, `high`,
+`xhigh`, and `max`. The built-in protocol maps cover the five common levels
+from `low` through `max`; custom gateways can provide their own values.
+
+> Providers must already exist in the `llm-pi-ai` settings. The plugin enhances
+> an existing provider; it does not recreate one that has been removed.
+
+## Safe by default
+
+This plugin is designed to sit beside existing DSH configuration:
+
+- existing `reasoningEfforts` values are never overwritten, including `false`;
+- model fields unrelated to reasoning effort are preserved;
+- settings are retried briefly when `llm-pi-ai` registers late;
+- settings updates trigger a fresh additive sync;
+- no provider credentials, requests, tools, or telemetry are added.
+
+In other words, it prepares the settings contract and lets DSH's existing
+model controls do the rest.
 
 ## Local development
 
-From this checkout:
+Run the published-style Bundle through the local overlay:
 
-    dsh web --patch ./cordis.yml
+```sh
+pnpm install --config.auto-install-peers=false
+pnpm build
+dsh web --patch ./cordis.yml
+```
 
-The local overlay mounts src/index.ts with the same example configuration as
-the published Bundle.
-
-## Build
-
-    pnpm install --config.auto-install-peers=false
-    pnpm build
-
-## How it works
-
-The plugin waits briefly for llm-pi-ai to register its settings namespace,
-then fills missing provider, model, and model-override declarations. It also
-rechecks the namespace after settings updates, which makes it safe to use in
-compositions where the provider settings service starts later.
+`cordis.yml` mounts `src/index.ts` with the same example configuration used by
+the Bundle patch.
 
 ## License
 

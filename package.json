@@ -12,6 +12,7 @@
   "files": [
     "lib/index.js",
     "cordis.patch.yml",
+    "assets",
     "README.md",
     "README.zh.md",
     "LICENSE"
