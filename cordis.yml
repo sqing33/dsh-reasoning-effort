@@ -1,0 +1,34 @@
+# Optional overlay for a DeepSeek Harness web composition.
+# Usage: dsh web --patch dsh-reasoning-effort/cordis.yml
+
+- insert:
+    - id: reasoning-effort
+      name: './src/index.ts'
+      config:
+        providers:
+          cliproxyapi:
+            api: openai-completions
+            reasoning: high
+            efforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          jyld:
+            api: openai-completions
+            models:
+              deepseek-v4-flash-0731:
+                efforts:
+                  low: low
+                  medium: medium
+                  high: high
+                  xhigh: xhigh
+                  max: max
+              deepseek-v4-pro-0813:
+                efforts:
+                  low: low
+                  medium: medium
+                  high: high
+                  xhigh: xhigh
+                  max: max
