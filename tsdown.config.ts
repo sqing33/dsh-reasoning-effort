@@ -14,9 +14,35 @@ const hostConfig: UserConfig = {
     neverBundle: [
       '@deepseek-ai/cordis',
       '@deepseek-ai/schemastery',
+      '@deepseek-ai/dsh-llm-pi-ai',
       '@deepseek-ai/dsh-settings',
     ],
   },
 }
 
-export default defineConfig(hostConfig)
+/** Build the browser half as a DSH client-module registration bundle. */
+const clientConfig: UserConfig = {
+  name: 'dsh-reasoning-effort/client',
+  entry: { client: 'src/client/index.tsx' },
+  outDir: 'lib',
+  format: ['cjs'],
+  platform: 'browser',
+  target: 'es2022',
+  sourcemap: true,
+  clean: false,
+  deps: {
+    neverBundle: [
+      'react',
+      'react/jsx-runtime',
+      '@deepseek-ai/dsh-client-ui-slots',
+    ],
+  },
+  outputOptions: {
+    entryFileNames: 'client.js',
+    banner: 'window.__ModuleLoader__.load({ id: "dsh-reasoning-effort", factory: (require) => {',
+    footer: 'return module.exports; } });',
+    intro: 'var module = { exports: {} }; var exports = module.exports;',
+  },
+}
+
+export default defineConfig([hostConfig, clientConfig])

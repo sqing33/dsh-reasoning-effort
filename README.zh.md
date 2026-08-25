@@ -15,6 +15,14 @@
 
 _配置能力概览：插件负责补充设置，运行时界面和模型适配仍由 DSH 提供。_
 
+![模型与推理强度弹窗](assets/reasoning-effort-popover.png)
+
+_插件把模型选择和推理等级收进同一个清晰、紧凑的弹窗。_
+
+![实时推理强度滑块](assets/reasoning-effort-slider.gif)
+
+_GIF 展示滑块在离散档位间移动；到达最高档时会出现紫色辉光、边缘闪烁和扫光拖尾。_
+
 ## 它解决什么问题
 
 不同 Provider 对同一个概念使用不同的词汇：有的接受 `low` / `medium` /
@@ -28,6 +36,9 @@ _配置能力概览：插件负责补充设置，运行时界面和模型适配�
 - 支持 Provider 级默认推理等级；
 - 支持用 `disabled: true` 显式关闭某个模型的推理能力；
 - 以追加方式更新 settings，保留已有声明。
+- 在输入框发送按钮旁提供按模型变化的推理条；
+- 与 DSH 自带模型菜单共用同一条选择路径；
+- 最高档启用清晰的紫色特效，方便确认当前推理强度。
 
 ## 安装
 
@@ -95,13 +106,20 @@ Harness 支持的等级为 `off`、`minimal`、`low`、`medium`、`high`、`xhig
 
 换句话说，它只准备好 settings 契约，具体的模型控制仍交给 DSH 自己完成。
 
+## 输入框推理条
+
+浏览器端会读取当前模型公布的推理等级，把这些等级绘制成离散滑条，
+并通过 DSH 共享的模型目录提交选择。拖动过程中，文字、填充条和最高档特效
+只在前端实时更新；松手后才把最终位置提交给后端。没有推理元数据的模型不会
+显示空控件。
+
 ## 本地开发
 
 通过本地 overlay 运行与发布 Bundle 相同的配置：
 
 ```sh
 pnpm install --config.auto-install-peers=false
-pnpm build
+npm run build
 dsh web --patch ./cordis.yml
 ```
 

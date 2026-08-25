@@ -17,6 +17,16 @@ without replacing the settings that are already there.
 _Configuration overview: the bundle supplies settings; DSH remains the runtime
 UI and model adapter._
 
+![Model and reasoning-effort popover](assets/reasoning-effort-popover.png)
+
+_The plugin keeps the model chooser and reasoning levels together in one focused
+popover._
+
+![Live reasoning-effort slider](assets/reasoning-effort-slider.gif)
+
+_The GIF previews the slider moving through discrete levels; the maximum level
+switches to a purple glow, edge flash, and sweeping tail._
+
 ## Why it exists
 
 Different providers describe the same idea in different dialects. One accepts
@@ -31,6 +41,9 @@ The result is deliberately narrow:
 - a provider-level default reasoning setting;
 - explicit model opt-out with `disabled: true`;
 - safe, additive settings updates that preserve existing declarations.
+- a provider-aware slider beside the composer send button;
+- one shared selection path with DSH's built-in model menu;
+- a clear purple max-level effect when the highest advertised effort is active.
 
 ## Install
 
@@ -102,13 +115,21 @@ This plugin is designed to sit beside existing DSH configuration:
 In other words, it prepares the settings contract and lets DSH's existing
 model controls do the rest.
 
+## Composer control
+
+The client half reads the active model's advertised effort list, renders those
+levels as a discrete slider, and sends the selected value through DSH's shared
+model directory. During a drag, the label, fill, and maximum-level effect update
+locally in real time; only the released position is committed to the backend.
+Models without reasoning metadata simply do not get an empty control.
+
 ## Local development
 
 Run the published-style Bundle through the local overlay:
 
 ```sh
 pnpm install --config.auto-install-peers=false
-pnpm build
+npm run build
 dsh web --patch ./cordis.yml
 ```
 
