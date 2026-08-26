@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -26,7 +27,13 @@ export type ReasoningBarProps = PropsRuntime<'conversation.input.model'>
   & PropsLocale<'reasoning-effort'>
 
 type CatalogModel = ModelDirectoryState['groups'][number]['models'][number]
+type CatalogGroup = ModelDirectoryState['groups'][number]
 type Effort = NonNullable<CatalogModel['reasoning']>['efforts'][number]
+
+function groupLabel(group: CatalogGroup): string {
+  const namedGroup = group as CatalogGroup & { label?: string; name?: string; title?: string }
+  return namedGroup.name ?? namedGroup.label ?? namedGroup.title ?? group.id
+}
 
 function modelFor(state: ModelDirectoryState) {
   const current = state.current
@@ -49,6 +56,18 @@ interface EffortSliderProps {
   disabled: boolean
   onChange: (index: number) => void
   onCommit: (index: number) => void
+}
+
+interface PendingEffort {
+  modelKey: string
+  effortId: string
+  index: number
+}
+
+interface PendingModel {
+  group: CatalogGroup
+  model: CatalogModel
+  effortId: string | undefined
 }
 
 /** A Codex-style thick, pointer-draggable discrete slider. */
@@ -183,65 +202,133 @@ export function ReasoningBar({ locked, directory, load, select, t }: ReasoningBa
     () => directory.getSnapshot(),
   )
   const [open, setOpen] = useState(false)
-  const [localIndex, setLocalIndex] = useState<number | null>(null)
+  const [pendingEffort, setPendingEffort] = useState<PendingEffort | null>(null)
+  const [pendingModel, setPendingModel] = useState<PendingModel | null>(null)
+  const [committing, setCommitting] = useState(false)
+  const [modelsScrolling, setModelsScrolling] = useState(false)
+  const [expandedProviders, setExpandedProviders] = useState<Set<string>>(() => new Set())
   const rootRef = useRef<HTMLDivElement>(null)
+  const modelScrollTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => () => {
+    if (modelScrollTimerRef.current !== null) window.clearTimeout(modelScrollTimerRef.current)
+  }, [])
+
+  const currentModel = useMemo(() => modelFor(state), [state])
+  const visibleGroup = pendingModel?.group ?? currentModel?.group
+  const visibleModel = pendingModel?.model ?? currentModel?.model
+  const reasoning = visibleModel?.reasoning
+  const efforts = reasoning?.efforts ?? []
+  const fallbackEffort = reasoning?.defaultEffort ?? efforts[Math.floor(efforts.length / 2)]?.id
+  const selectedId = pendingModel === null
+    ? state.current?.reasoningEffort ?? fallbackEffort
+    : pendingModel.effortId ?? fallbackEffort
+  const selectedIndex = Math.max(0, efforts.findIndex(effort => effort.id === selectedId))
+  const selected = efforts[selectedIndex]
+  const visibleModelKey = visibleModel === undefined || visibleGroup === undefined
+    ? undefined
+    : visibleGroup.id + ':' + visibleModel.id + ':' + efforts.map(effort => effort.id).join(',')
+  const hasPendingEffort = pendingEffort !== null
+    && pendingEffort.modelKey === visibleModelKey
+    && pendingEffort.effortId !== selected?.id
+    && state.error === null
+  const displayIndex = hasPendingEffort
+    ? clamp(pendingEffort.index, 0, Math.max(0, efforts.length - 1))
+    : selectedIndex
+  const displaySelected = efforts[displayIndex]
+  const isMax = efforts.length > 1 && displayIndex === efforts.length - 1
+  const busy = locked === true || committing || state.status === 'selecting'
+  const modelLabel = visibleModel?.name ?? state.current?.model ?? t('chooseModel')
+
+  const activeProvider = pendingModel?.group.id ?? state.current?.provider
+  const activeModelId = pendingModel?.model.id ?? state.current?.model
+
+  const closePicker = useCallback((): void => {
+    if (!open || committing) return
+    const staged = pendingModel
+    setOpen(false)
+    setPendingEffort(null)
+
+    if (staged === null || state.current === null) {
+      setPendingModel(null)
+      return
+    }
+
+    const selection: ModelSelection = {
+      provider: staged.group.id,
+      model: staged.model.id,
+    }
+    if (staged.effortId !== undefined) selection.reasoningEffort = staged.effortId
+
+    setCommitting(true)
+    void select(selection)
+      .catch(() => { /* shared store owns the error */ })
+      .finally(() => {
+        setCommitting(false)
+        setPendingModel(null)
+      })
+  }, [committing, open, pendingModel, select, state.current])
 
   useEffect(() => {
     if (!open) return
     const closeOutside = (event: globalThis.MouseEvent): void => {
       const target = event.target
       if (target instanceof Node && rootRef.current?.contains(target)) return
-      setOpen(false)
+      closePicker()
     }
     document.addEventListener('mousedown', closeOutside)
     return () => document.removeEventListener('mousedown', closeOutside)
-  }, [open])
-
-  const currentModel = useMemo(() => modelFor(state), [state])
-  const choices = useMemo(
-    () => state.groups.flatMap(group => group.models.map(model => ({ group, model }))),
-    [state.groups],
-  )
-  const reasoning = currentModel?.model.reasoning
-  const efforts = reasoning?.efforts ?? []
-  const fallbackEffort = reasoning?.defaultEffort ?? efforts[Math.floor(efforts.length / 2)]?.id
-  const selectedId = state.current?.reasoningEffort ?? fallbackEffort
-  const selectedIndex = Math.max(0, efforts.findIndex(effort => effort.id === selectedId))
-  const selected = efforts[selectedIndex]
-  const displayIndex = localIndex === null
-    ? selectedIndex
-    : clamp(localIndex, 0, Math.max(0, efforts.length - 1))
-  const displaySelected = efforts[displayIndex]
-  const isMax = efforts.length > 1 && displayIndex === efforts.length - 1
-  const busy = locked === true || state.status === 'selecting'
-  const modelLabel = currentModel?.model.name ?? state.current?.model ?? t('chooseModel')
+  }, [closePicker, open])
 
   useEffect(() => {
-    setLocalIndex(selectedIndex)
-  }, [selectedIndex, efforts])
+    if (pendingEffort === null) return
+    if (
+      pendingEffort.modelKey !== visibleModelKey
+      || pendingEffort.effortId === selected?.id
+      || state.error !== null
+    ) {
+      setPendingEffort(null)
+    }
+  }, [pendingEffort, selected?.id, state.error, visibleModelKey])
 
   const chooseModel = (provider: string, modelId: string): void => {
-    const target = choices.find(choice => choice.group.id === provider && choice.model.id === modelId)
-    if (target === undefined || state.current === null) return
-    if (state.current.provider === provider && state.current.model === modelId) return
+    const targetGroup = state.groups.find(group => group.id === provider)
+    const target = targetGroup?.models.find(model => model.id === modelId)
+    if (target === undefined || targetGroup === undefined || state.current === null) return
+    if (pendingModel?.group.id === provider && pendingModel.model.id === modelId) return
+    if (pendingModel === null && state.current.provider === provider && state.current.model === modelId) return
 
-    const targetEfforts = target.model.reasoning?.efforts ?? []
-    const currentEffort = state.current.reasoningEffort
+    const targetEfforts = target.reasoning?.efforts ?? []
+    const currentEffort = pendingModel?.effortId ?? state.current.reasoningEffort
     const effort = currentEffort !== undefined && targetEfforts.some(item => item.id === currentEffort)
       ? currentEffort
-      : target.model.reasoning?.defaultEffort ?? targetEfforts[Math.floor(targetEfforts.length / 2)]?.id
-    const selection: ModelSelection = { provider, model: modelId }
-    if (effort !== undefined) selection.reasoningEffort = effort
-    void select(selection).catch(() => { /* shared store owns the error */ })
+      : target.reasoning?.defaultEffort ?? targetEfforts[Math.floor(targetEfforts.length / 2)]?.id
+    setPendingEffort(null)
+    setPendingModel({ group: targetGroup, model: target, effortId: effort })
+  }
+
+  const toggleProvider = (provider: string): void => {
+    setExpandedProviders(previous => {
+      const next = new Set(previous)
+      if (next.has(provider)) next.delete(provider)
+      else next.add(provider)
+      return next
+    })
   }
 
   const commitEffort = (index: number): void => {
     const effort = efforts[index]
-    if (effort === undefined || state.current === null || effort.id === selected?.id) return
+    if (effort === undefined || effort.id === selected?.id) return
+    if (pendingModel !== null) {
+      setPendingModel(previous => previous === null ? previous : { ...previous, effortId: effort.id })
+      setPendingEffort(null)
+      return
+    }
+    if (state.current === null) return
     void select({
       provider: state.current.provider,
       model: state.current.model,
@@ -249,22 +336,47 @@ export function ReasoningBar({ locked, directory, load, select, t }: ReasoningBa
     }).catch(() => { /* shared store owns the error */ })
   }
 
+  const previewEffort = (index: number): void => {
+    const effort = efforts[index]
+    if (effort === undefined || visibleModelKey === undefined) return
+    if (pendingModel !== null) {
+      setPendingModel(previous => previous === null ? previous : { ...previous, effortId: effort.id })
+      setPendingEffort(null)
+      return
+    }
+    setPendingEffort({ modelKey: visibleModelKey, effortId: effort.id, index })
+  }
+
+  const markModelsScrolling = (): void => {
+    setModelsScrolling(true)
+    if (modelScrollTimerRef.current !== null) window.clearTimeout(modelScrollTimerRef.current)
+    modelScrollTimerRef.current = window.setTimeout(() => {
+      modelScrollTimerRef.current = null
+      setModelsScrolling(false)
+    }, 100)
+  }
+
   const toggle = (): void => {
     if (busy) return
-    if (!open) load()
-    setOpen(value => !value)
+    if (open) {
+      closePicker()
+      return
+    }
+    load()
+    setOpen(true)
   }
 
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>): void => {
     if (event.key !== 'Escape' || !open) return
     event.preventDefault()
-    setOpen(false)
+    closePicker()
   }
 
   return (
     <div
       ref={rootRef}
       className="dsh-reasoning-model"
+      data-busy={busy}
       data-max={isMax}
       data-open={open}
       onKeyDown={onKeyDown}
@@ -296,31 +408,71 @@ export function ReasoningBar({ locked, directory, load, select, t }: ReasoningBa
             <span className="dsh-reasoning-model__model-head-value" title={modelLabel}>{modelLabel}</span>
           </div>
 
-          <div className="dsh-reasoning-model__models" role="listbox" aria-label={t('chooseModel')}>
+          <div
+            className="dsh-reasoning-model__models"
+            data-scrolling={modelsScrolling}
+            aria-label={t('chooseModel')}
+            onWheel={markModelsScrolling}
+            onScroll={markModelsScrolling}
+          >
             {state.status === 'loading' && <div className="dsh-reasoning-model__status">{t('loading')}</div>}
-            {choices.map(choice => {
-              const active = state.current?.provider === choice.group.id && state.current.model === choice.model.id
+            {state.groups.map(group => {
+              const expanded = expandedProviders.has(group.id)
+              const name = groupLabel(group)
+              const activeModel = pendingModel?.group.id === group.id
+                ? pendingModel.model.name
+                : currentModel?.group.id === group.id
+                  ? currentModel.model.name
+                  : undefined
               return (
-                <button
-                  key={choice.group.id + ':' + choice.model.id}
-                  className="dsh-reasoning-model__option"
-                  type="button"
-                  role="option"
-                  aria-selected={active}
-                  disabled={busy}
-                  onClick={() => chooseModel(choice.group.id, choice.model.id)}
-                >
-                  <span className="dsh-reasoning-model__option-copy">
-                    <span className="dsh-reasoning-model__option-name">{choice.model.name}</span>
-                    {choice.model.description !== undefined && (
-                      <span className="dsh-reasoning-model__option-description">{choice.model.description}</span>
-                    )}
-                  </span>
-                  {active && <span className="dsh-reasoning-model__check" aria-hidden="true">✓</span>}
-                </button>
+                <section key={group.id} className="dsh-reasoning-model__provider" data-expanded={expanded}>
+                  <button
+                    className="dsh-reasoning-model__provider-toggle"
+                    type="button"
+                    aria-expanded={expanded}
+                    aria-label={name}
+                    disabled={busy}
+                    onClick={() => toggleProvider(group.id)}
+                  >
+                    <span className="dsh-reasoning-model__provider-copy">
+                      <span className="dsh-reasoning-model__provider-name">{name}</span>
+                      <span className="dsh-reasoning-model__provider-meta">
+                        {activeModel ?? t('providerCount', { count: group.models.length })}
+                      </span>
+                    </span>
+                    <ChevronIcon open={expanded} />
+                  </button>
+
+                  {expanded && (
+                    <div className="dsh-reasoning-model__provider-models" role="listbox" aria-label={name}>
+                      {group.models.map(model => {
+                        const active = activeProvider === group.id && activeModelId === model.id
+                        return (
+                          <button
+                            key={group.id + ':' + model.id}
+                            className="dsh-reasoning-model__option"
+                            type="button"
+                            role="option"
+                            aria-selected={active}
+                            disabled={busy}
+                            onClick={() => chooseModel(group.id, model.id)}
+                          >
+                            <span className="dsh-reasoning-model__option-copy">
+                              <span className="dsh-reasoning-model__option-name">{model.name}</span>
+                              {model.description !== undefined && (
+                                <span className="dsh-reasoning-model__option-description">{model.description}</span>
+                              )}
+                            </span>
+                            {active && <span className="dsh-reasoning-model__check" aria-hidden="true">✓</span>}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </section>
               )
             })}
-            {state.status === 'ready' && choices.length === 0 && (
+            {state.status === 'ready' && state.groups.length === 0 && (
               <div className="dsh-reasoning-model__status">{t('empty')}</div>
             )}
           </div>
@@ -341,7 +493,7 @@ export function ReasoningBar({ locked, directory, load, select, t }: ReasoningBa
                     efforts={efforts}
                     index={displayIndex}
                     disabled={busy}
-                    onChange={index => setLocalIndex(index)}
+                    onChange={previewEffort}
                     onCommit={commitEffort}
                   />
                 </>
