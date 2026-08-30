@@ -1,6 +1,6 @@
 {
   "name": "dsh-reasoning-effort",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Provider-aware reasoning effort settings and composer control for DeepSeek Harness.",
   "type": "module",
   "main": "lib/index.js",
@@ -46,6 +46,7 @@
   },
   "scripts": {
     "build": "tsdown",
+    "test": "node --experimental-strip-types --test test/reasoning-settings.test.ts",
     "verify": "node scripts/verify-package.mjs",
     "prepublishOnly": "npm run build"
   },

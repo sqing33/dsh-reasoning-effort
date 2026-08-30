@@ -27,6 +27,7 @@ _GIF 展示滑块在离散档位间移动；到达最高档时会出现紫色辉
 
 它只做必要的配置工作：
 
+- 零配置自动发现当前 `llm-pi-ai` 中的全部现有 Provider；
 - 为常见 DSH 适配协议提供按 Provider 识别的默认映射；
 - 支持 Provider 级和模型级推理强度映射；
 - 支持 Provider 级默认推理等级；
@@ -49,39 +50,46 @@ dsh web
 
 ## 配置
 
-Bundle 已内置 `cliproxyapi` 和 `jyld` 的示例配置。需要配置其他 Provider 时，
-在最终使用的 Cordis patch 中覆盖 `reasoning-effort` loader：
+默认不需要写 Provider 名称。插件会从 `llm-pi-ai` settings 自动发现当前电脑上
+已经存在的全部 Provider，并为其中缺少声明的模型补齐通用推理档位。因此，
+Bundle 不再把 `cliproxyapi`、`jyld` 或任何其他名称当作默认白名单。
+
+只有特殊网关需要不同 wire 值、需要排除某个 Provider，或需要单独处理模型时，
+才在最终使用的 Cordis patch 中加入覆盖：
 
 ```yaml
 - insert:
     - id: reasoning-effort
       name: dsh-reasoning-effort
       config:
+        defaults:
+          reasoning: medium
         providers:
-          my-provider:
+          special-provider:
             api: openai-responses
-            reasoning: medium
             efforts:
-              low: low
-              medium: medium
-              high: high
-              xhigh: xhigh
-              max: max
+              high: reasoning_high
             models:
-              my-reasoning-model:
-                efforts:
-                  high: reasoning_high
+              non-reasoning-model:
+                disabled: true
+          excluded-provider:
+            disabled: true
 ```
 
 ### 配置字段
 
 | 字段 | 作用 |
 | --- | --- |
-| `api` | 选择 Provider 协议对应的默认 wire 值映射。 |
-| `reasoning` | 仅在 Provider 没有该设置时，补充默认推理等级。 |
-| `efforts` | 覆盖 Harness 各等级实际发送的字符串。 |
-| `models.<id>.efforts` | 单独覆盖某个模型的映射。 |
-| `models.<id>.disabled` | 显式标记某个模型不使用推理强度。 |
+| `auto` | 是否自动发现全部现有 Provider，默认 `true`；设为 `false` 时只处理 `providers` 中显式列出的项。 |
+| `defaults.api` | 当 Provider 自身没有 `api` 时使用的协议回退值。 |
+| `defaults.reasoning` | 为所有 Provider 补充默认推理等级，但不覆盖已有值。 |
+| `defaults.efforts` | 覆盖所有 Provider 的通用 wire 值映射。 |
+| `providers.<id>.api` | 为指定 Provider 选择协议默认映射。 |
+| `providers.<id>.reasoning` | 为指定 Provider 补充默认推理等级。 |
+| `providers.<id>.efforts` | 覆盖指定 Provider 的 wire 值映射。 |
+| `providers.<id>.disabled` | 排除指定 Provider。 |
+| `providers.<id>.models.<model-id>.efforts` | 单独覆盖某个模型的映射。 |
+| `providers.<id>.models.<model-id>.disabled` | 显式标记某个模型不使用推理强度。 |
 
 Harness 支持的等级为 `off`、`minimal`、`low`、`medium`、`high`、`xhigh` 和
 `max`。内置协议映射覆盖 `low` 到 `max` 五个常用等级；特殊网关可以自行提供
@@ -119,7 +127,7 @@ npm run build
 dsh web --patch ./cordis.yml
 ```
 
-`cordis.yml` 会挂载 `src/index.ts`，并使用与 Bundle patch 相同的示例配置。
+`cordis.yml` 会挂载 `src/index.ts`，并使用与 Bundle patch 相同的零配置自动发现行为。
 
 ## 许可证
 

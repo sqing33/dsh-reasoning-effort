@@ -1,9 +1,10 @@
 # 贡献指南
 
-感谢你关注 `dsh-reasoning-effort`。提交改动前，请在 Node.js 22 或更高版本环境中完成构建和结构检查：
+感谢你关注 `dsh-reasoning-effort`。提交改动前，请在 Node.js 22.6 或更高版本环境中完成测试、构建和结构检查：
 
 ```sh
 pnpm install --config.auto-install-peers=false
+npm test
 npm run build
 npm run verify
 ```

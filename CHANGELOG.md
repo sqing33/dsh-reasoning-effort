@@ -1,5 +1,11 @@
 # 更新日志
 
+## 0.2.7
+
+- 默认自动发现并处理 `llm-pi-ai` 中的全部现有 Provider，不再依赖 `cliproxyapi` 和 `jyld` 示例名称。
+- 增加全局 `defaults`、Provider 排除项和 `auto: false` 兼容模式。
+- 增加陌生 Provider、已有声明保留、覆盖合并和显式白名单模式的回归测试。
+
 ## 0.2.6
 
 - 增加按 Provider 分组的模型选择器。
