@@ -46,6 +46,7 @@
   },
   "scripts": {
     "build": "tsdown",
+    "verify": "node scripts/verify-package.mjs",
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
