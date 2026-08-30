@@ -11,13 +11,9 @@
 命名空间中补齐缺失的推理强度声明。它支持 Provider 默认值、按模型覆盖和
 协议 wire 值映射，同时不会替换已有设置。
 
-![dsh-reasoning-effort 配置概览](assets/reasoning-effort-overview.png)
+![模型选择器与最高推理强度特效](assets/reasoning-effort-model-picker-max.png)
 
-_配置能力概览：插件负责补充设置，运行时界面和模型适配仍由 DSH 提供。_
-
-![模型与推理强度弹窗](assets/reasoning-effort-popover.png)
-
-_插件把模型选择和推理等级收进同一个清晰、紧凑的弹窗。_
+_模型选择器按 Provider 折叠分组；可以为任意已接入模型配置推理强度，滑到最高级时会出现紫色辉光、边缘闪烁和拖尾特效。_
 
 ![实时推理强度滑块](assets/reasoning-effort-slider.gif)
 
