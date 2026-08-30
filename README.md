@@ -7,7 +7,7 @@
 
 > 为 DeepSeek Harness 中的任意模型设置推理强度，并在最高档点亮紫色动态特效。
 
-`dsh-reasoning-effort` 是一个独立的 DSH Bundle，用来补齐和管理模型的推理强度配置。它不限制 Provider 或模型品牌：只要模型已经接入 DeepSeek Harness，就可以为它声明默认等级、模型级覆盖和实际协议值映射。
+`dsh-reasoning-effort` 用来补齐和管理模型的推理强度配置。不限制 Provider 或模型品牌：只要模型已经接入 DeepSeek Harness，就可以为它声明默认等级、模型级覆盖和实际协议值映射。
 
 ![模型选择器与最高推理强度特效](assets/reasoning-effort-model-picker-max.png)
 
