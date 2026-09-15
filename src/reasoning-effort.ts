@@ -8,7 +8,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { settingsNamespace, type SettingsPathOp } from '@deepseek-ai/dsh-settings'
+import type { SettingsPathOp } from '@deepseek-ai/dsh-settings'
 import {
   REASONING_LEVELS,
   type ReasoningEfforts,
@@ -53,7 +53,10 @@ export const reasoningConfigSchema: z<ReasoningConfig> = z.object({
   providers: z.dict(providerReasoningConfig),
 })
 
-const PI_AI_NAMESPACE = settingsNamespace('llm-pi-ai')
+// A namespace is represented by its validated string at runtime. Keeping the
+// literal here works with both the legacy settingsNamespace() API and DSH
+// 0.1.6+, where that helper is no longer exported.
+const PI_AI_NAMESPACE = 'llm-pi-ai'
 
 const STARTUP_RETRY_DELAY_MS = 50
 const STARTUP_RETRY_LIMIT = 40

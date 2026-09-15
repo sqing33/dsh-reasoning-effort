@@ -42,7 +42,7 @@ _GIF 展示滑块在离散档位间移动；到达最高档时会出现紫色辉
 将 npm 上已构建的 Bundle 安装到 DSH web profile，然后重启正在运行的 Harness：
 
 ```sh
-dsh plugin --profile web add -w --config.auto-install-peers=false dsh-reasoning-effort
+dsh plugin --profile web add -w dsh-reasoning-effort
 dsh web
 ```
 
@@ -122,7 +122,7 @@ Harness 支持的等级为 `off`、`minimal`、`low`、`medium`、`high`、`xhig
 通过本地 overlay 运行与发布 Bundle 相同的配置：
 
 ```sh
-pnpm install --config.auto-install-peers=false
+pnpm install
 npm run build
 dsh web --patch ./cordis.yml
 ```

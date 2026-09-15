@@ -1,6 +1,6 @@
 {
   "name": "dsh-reasoning-effort",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Provider-aware reasoning effort settings and composer control for DeepSeek Harness.",
   "type": "module",
   "main": "lib/index.js",
@@ -48,7 +48,7 @@
     "build": "tsdown",
     "test": "node --experimental-strip-types --test test/reasoning-settings.test.ts",
     "verify": "node scripts/verify-package.mjs",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build && npm test && npm run verify"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "*",
@@ -56,12 +56,51 @@
     "@deepseek-ai/dsh-settings": "*",
     "@deepseek-ai/dsh-llm-pi-ai": "*",
     "@deepseek-ai/dsh-api-remotes": "*",
+    "@deepseek-ai/dsh-api-session-controller": "*",
     "@deepseek-ai/dsh-client-locale": "*",
     "@deepseek-ai/dsh-client-runtime": "*",
     "@deepseek-ai/dsh-client-ui-conversation": "*",
     "@deepseek-ai/dsh-client-ui-model-selection": "*",
     "@deepseek-ai/dsh-client-ui-slots": "*",
     "react": "^18.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/schemastery": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-settings": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-llm-pi-ai": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-api-remotes": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-api-session-controller": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-locale": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-runtime": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-ui-conversation": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-ui-model-selection": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-client-ui-slots": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/react": "~18.3.1",
@@ -77,11 +116,17 @@
       "platform": "web",
       "inject": [
         "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-api-session-controller",
         "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-locale",
         "@deepseek-ai/dsh-client-ui-conversation",
         "@deepseek-ai/dsh-client-ui-model-selection"
       ]
     }
-  }
+  },
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "author": ""
 }
