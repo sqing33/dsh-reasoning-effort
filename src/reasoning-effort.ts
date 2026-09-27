@@ -45,6 +45,7 @@ const providerReasoningConfig = z.object({
 
 export const reasoningConfigSchema: z<ReasoningConfig> = z.object({
   auto: z.boolean(),
+  force: z.boolean(),
   defaults: z.object({
     api: z.string(),
     reasoning: z.union(REASONING_LEVELS),

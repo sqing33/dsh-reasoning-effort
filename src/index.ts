@@ -12,11 +12,13 @@ import {
   reasoningConfigSchema,
   type ReasoningConfig,
 } from './reasoning-effort.ts'
+import { forcePatchEffortTiers } from './patch-tiers.ts'
 
 export const name = 'reasoning-effort'
 export const inject = ['settings']
 export const Config = reasoningConfigSchema
 
 export function apply(ctx: Context, config: ReasoningConfig = {}): void {
+  forcePatchEffortTiers(ctx, config)
   applyReasoningEffort(ctx, config)
 }

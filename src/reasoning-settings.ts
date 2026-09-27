@@ -34,6 +34,12 @@ export interface ProviderReasoningConfig extends ReasoningDefaultsConfig {
 export interface ReasoningConfig {
   /** Discover all existing Providers. Defaults to true. */
   auto?: boolean
+  /**
+   * Rewrite the profile patch so every declared model offers the ladder.
+   * Defaults to true. A settings write cannot outrank a loader patch, so this
+   * edits cordis.patch.yml directly; set false to keep the file untouched.
+   */
+  force?: boolean
   /** Defaults applied to every discovered Provider. */
   defaults?: ReasoningDefaultsConfig
   /** Optional Provider-specific overrides; this is not an allowlist unless auto is false. */
@@ -121,8 +127,6 @@ function buildProviderOps(
         }
         return entry
       }
-      if (entry.reasoningEfforts !== undefined) return entry
-
       modelsChanged = true
       return {
         ...entry,
@@ -155,8 +159,6 @@ function buildProviderOps(
         }
         continue
       }
-      if (modelOverride.reasoningEfforts !== undefined) continue
-
       ops.push({
         op: 'set',
         path: ['providers', provider, 'modelOverrides', modelId, 'reasoningEfforts'],

@@ -21,7 +21,7 @@ export const REASONING_LEVELS: readonly ReasoningLevel[] = [
 ]
 
 const FIVE_LEVEL_EFFORTS: ReasoningEfforts = {
-  low: 'low',
+  off: 'off',
   medium: 'medium',
   high: 'high',
   xhigh: 'xhigh',
